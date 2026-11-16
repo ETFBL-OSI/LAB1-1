@@ -2,3 +2,4 @@ test
 novi red
 primjer za novu granu
 test
+primjer lab 5
