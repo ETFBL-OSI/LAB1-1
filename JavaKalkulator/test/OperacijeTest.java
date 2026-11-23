@@ -1,11 +1,138 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class OperacijeTest {
 
     private static final double DELTA = 1e-9;
+
+    private final PrintStream originalniOut = System.out;
+    private final ByteArrayOutputStream izlaz = new ByteArrayOutputStream();
+
+    @BeforeEach
+    void preusmjeriIzlaz() {
+        System.setOut(new PrintStream(izlaz, true, StandardCharsets.UTF_8));
+    }
+
+    @AfterEach
+    void vratiIzlaz() {
+        System.setOut(originalniOut);
+    }
+
+    private String ispis() {
+        return izlaz.toString(StandardCharsets.UTF_8);
+    }
+
+    // --- Kriterijumi prihvatanja iz issue-a #5 ---
+
+    @Test
+    void podijeliDesetICetiriVracaDvaIPo() {
+        assertEquals(2.5, Operacije.podijeli(10, 4), DELTA);
+    }
+
+    @Test
+    void podijeliMinusDevetITriVracaMinusTri() {
+        assertEquals(-3.0, Operacije.podijeli(-9, 3), DELTA);
+    }
+
+    @Test
+    void podijeliPetINulaIspisujePorukuIVracaNulu() {
+        assertEquals(0.0, Operacije.podijeli(5, 0), DELTA);
+        assertEquals("Greska: dijeljenje nulom!", ispis().trim());
+    }
+
+    // --- Dijeljenje ---
+
+    @Test
+    void podijeliBezGreskeNistaNeIspisuje() {
+        Operacije.podijeli(10, 4);
+        assertEquals("", ispis());
+    }
+
+    @Test
+    void podijeliDvaNegativnaDajePozitivan() {
+        assertEquals(4.0, Operacije.podijeli(-12, -3), DELTA);
+    }
+
+    @Test
+    void podijeliPozitivanINegativanDajeNegativan() {
+        assertEquals(-4.0, Operacije.podijeli(12, -3), DELTA);
+    }
+
+    @Test
+    void podijeliSaJedanVracaIstiBroj() {
+        assertEquals(7.25, Operacije.podijeli(7.25, 1), DELTA);
+    }
+
+    @Test
+    void podijeliNuluSaBrojemVracaNulu() {
+        assertEquals(0.0, Operacije.podijeli(0, 5), DELTA);
+        assertEquals("", ispis());
+    }
+
+    @Test
+    void podijeliRealneBrojeve() {
+        assertEquals(0.5, Operacije.podijeli(0.75, 1.5), DELTA);
+    }
+
+    @Test
+    void podijeliRezultatSaBeskonacnimDecimalama() {
+        assertEquals(1.0 / 3.0, Operacije.podijeli(1, 3), DELTA);
+    }
+
+    // --- Dijeljenje nulom (granični slučajevi) ---
+
+    @Test
+    void podijeliNegativanBrojNulomVracaNulu() {
+        double rezultat = Operacije.podijeli(-5, 0);
+        assertEquals(0.0, rezultat, DELTA);
+        assertFalse(Double.isInfinite(rezultat));
+        assertTrue(ispis().contains("Greska: dijeljenje nulom!"));
+    }
+
+    @Test
+    void podijeliNuluNulomVracaNuluANeNaN() {
+        double rezultat = Operacije.podijeli(0, 0);
+        assertEquals(0.0, rezultat, DELTA);
+        assertFalse(Double.isNaN(rezultat));
+        assertTrue(ispis().contains("Greska: dijeljenje nulom!"));
+    }
+
+    @Test
+    void podijeliNegativnomNulomSeTretiraKaoDijeljenjeNulom() {
+        double rezultat = Operacije.podijeli(5, -0.0);
+        assertEquals(0.0, rezultat, DELTA);
+        assertFalse(Double.isInfinite(rezultat));
+        assertTrue(ispis().contains("Greska: dijeljenje nulom!"));
+    }
+
+    @Test
+    void podijeliNulomNeVracaBeskonacnostNiNaN() {
+        for (double a : new double[] {1, -1, 0, Double.MAX_VALUE, Double.MIN_VALUE}) {
+            double rezultat = Operacije.podijeli(a, 0);
+            assertFalse(Double.isInfinite(rezultat), "a = " + a);
+            assertFalse(Double.isNaN(rezultat), "a = " + a);
+        }
+    }
+
+    @Test
+    void porukaJeIstaKaoUIssueu() {
+        assertEquals("Greska: dijeljenje nulom!", Operacije.PORUKA_DIJELJENJE_NULOM);
+    }
+
+    @Test
+    void podijeliVeomaMalimBrojemNijeDijeljenjeNulom() {
+        assertEquals(Double.POSITIVE_INFINITY, Operacije.podijeli(Double.MAX_VALUE, Double.MIN_VALUE));
+        assertEquals("", ispis());
+    }
 
     // --- Kriterijumi prihvatanja iz issue-a #4 ---
 
